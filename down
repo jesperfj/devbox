@@ -1,0 +1,10 @@
+#!/bin/bash
+
+STACK_NAME=devbox
+
+# Running instances with tag Application=devbox
+INSTANCE_ID=$(aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=devbox" "Name=instance-state-code,Values=16" | jq -r '.Reservations[].Instances[].InstanceId')
+
+RESULT=$(aws --profile devbox ec2 terminate-instances --instance-ids $INSTANCE_ID)
+
+

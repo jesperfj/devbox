@@ -1,0 +1,24 @@
+#!/bin/bash
+
+STACK_NAME=devbox
+
+KEYPAIR_RESULT=$(aws --profile devbox ec2 import-key-pair --key-name devbox --public-key-material file://$HOME/.ssh/id_rsa.pub)
+
+STACK_ID=$(aws --profile devbox cloudformation create-stack --stack-name $STACK_NAME --template-body "$(cat vpc.json)" | jq -r .StackId)
+
+while true ; do
+  sleep 5
+  STATUS=$(aws --profile devbox cloudformation describe-stacks | jq -r ".Stacks[] | select(.StackId==\"$STACK_ID\") | .StackStatus")
+  if [ "$STATUS" != "CREATE_IN_PROGRESS" ] ; then
+    break
+  fi
+  echo -n '.'
+done
+echo
+
+if [ "$STATUS" == "CREATE_COMPLETE" ]; then
+  echo "Setup complete"
+else
+  echo "Setup failed. Check output below and inspect the $STACK_NAME cloudformation stack manually in AWS console for clues"
+  aws --profile devbox cloudformation describe-stacks | jq -r ".Stacks[] | select(.StackId==\"$STACK_ID\")"  
+fi

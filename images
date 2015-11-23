@@ -1,0 +1,5 @@
+#!/bin/bash
+
+STACK_NAME=devbox
+
+aws --profile devbox ec2 describe-images --filters "Name=tag:Application,Values=$STACK_NAME" | jq -r '.Images[] | "    "+.Name + " (" + .State + ")"'

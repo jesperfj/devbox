@@ -1,0 +1,7 @@
+#!/bin/bash
+
+STACK_NAME=devbox
+
+aws --profile devbox ec2 delete-key-pair --key-name $STACK_NAME
+
+aws --profile devbox cloudformation delete-stack --stack-name $STACK_NAME
