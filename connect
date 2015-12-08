@@ -2,8 +2,15 @@
 
 STACK_NAME=devbox
 
+INSTANCE_NAME=$1
+
+if [ -z $INSTANCE_NAME ]; then
+  echo "Usage: connect <your name of instance>"
+  exit 1
+fi
+
 # Running instances with tag Application=devbox
-IP=$(aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=devbox" "Name=instance-state-code,Values=16" | jq -r '.Reservations[].Instances[].PublicIpAddress')
+IP=$(aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=devbox" "Name=tag:ResourceName,Values=$INSTANCE_NAME" "Name=instance-state-code,Values=16" | jq -r '.Reservations[].Instances[].PublicIpAddress')
 
 if (( $(grep -c . <<<"$IP") > 1 )); then 
   echo "Failed: Multiple instances running:"

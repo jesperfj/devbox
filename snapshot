@@ -1,16 +1,22 @@
 #!/bin/bash
 
-IMAGE_NAME=$1
+INSTANCE_NAME=$1
+IMAGE_NAME=$2
 
-if [ -z $IMAGE_NAME ]; then
-  echo "Usage: snapshot <image name>"
+if [[ -z $IMAGE_NAME || -z $INSTANCE_NAME ]]; then
+  echo "Usage: snapshot <your name of instance> <image name>"
   exit 1
 fi
 
 STACK_NAME=devbox
 
 # Running instances with tag Application=devbox
-INSTANCE_ID=$(aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=devbox" "Name=instance-state-code,Values=16" | jq -r '.Reservations[].Instances[].InstanceId')
+INSTANCE_ID=$(aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=devbox" "Name=tag:ResourceName,Values=$INSTANCE_NAME" "Name=instance-state-code,Values=16" | jq -r '.Reservations[].Instances[].InstanceId')
+
+if [ -z $INSTANCE_ID ]; then
+  echo "Failed: No running instances named '$INSTANCE_NAME'."
+  exit 1
+fi
 
 if (( $(grep -c . <<<"$INSTANCE_ID") > 1 )); then 
   echo "Failed: Multiple instances are running:"

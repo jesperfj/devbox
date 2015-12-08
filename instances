@@ -2,4 +2,5 @@
 
 STACK_NAME=devbox
 
-aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=$STACK_NAME" | jq -r '.Reservations[].Instances[] | "    "+.InstanceId+" - "+.InstanceType+" ("+.State.Name+")"'
+aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=$STACK_NAME" | \
+jq -r '.Reservations[].Instances[] | "    "+(.Tags[] | select(.Key=="ResourceName").Value)+" - "+.InstanceType+" ("+.State.Name+")"'

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+STACK_NAME=devbox
+INSTANCE_NAME=$1
+INSTANCE_TYPE=$2
+
+if [[ -z $INSTANCE_NAME || -z $INSTANCE_TYPE ]]; then
+  echo "Usage: resize <your name of instance> <new instance type>"
+  exit 1
+fi
+
+# Stopped instances with tag Application=devbox, ResourceName=INSTANCE_NAME
+INSTANCE_ID=$(aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=devbox" "Name=tag:ResourceName,Values=$INSTANCE_NAME" "Name=instance-state-code,Values=80" | jq -r '.Reservations[].Instances[].InstanceId')
+
+if [ -z $INSTANCE_ID ]; then
+  echo "Failed: No stopped instances named '$INSTANCE_NAME'."
+  exit 1
+fi
+
+if (( $(grep -c . <<<"$INSTANCE_ID") > 1 )); then 
+  echo "Failed: Multiple instances found:"
+  echo "$INSTANCE_ID"
+  exit 1
+fi
+
+RESULT=$(aws --profile devbox ec2 modify-instance-attribute --instance-id $INSTANCE_ID --instance-type $INSTANCE_TYPE)
+
+echo "$INSTANCE_NAME resized to $INSTANCE_TYPE."
