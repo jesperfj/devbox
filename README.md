@@ -45,3 +45,11 @@ info        Convenience command for listing both images and instances
 
 ```
 
+# Cleanup
+
+The scripts currently can't clean up completely after themselves. If you don't want to play with this anymore and you want to clean up completely, do roughly the following:
+
+* Run `destroy` on all instances listed by the `instances` command
+* Use AWS Console to look for images with the tag name 'Appplication' set to the value 'devbox' and delete them
+* Run the `cleanup` script to get rid of the VPC
+* Double check in console that there are no instances, EBS volumes or images sitting around.
