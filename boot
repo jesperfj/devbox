@@ -6,7 +6,7 @@ INSTANCE_NAME=$2
 INSTANCE_TYPE=$3
 
 if [[ -z $IMAGE_NAME || -z $INSTANCE_NAME ]]; then
-  echo "Usage: up <image name> <your name for this instance> [instance type]"
+  echo "Usage: boot <image name> <your name for this instance> [instance type]"
   exit 1
 fi
 
