@@ -16,32 +16,32 @@ Let's bite the bullet and keep nice tidy scripts to do all the things on AWS. De
 # Usage
 
 ```
-setup     First thing to run and only run once. Sets up the basic 
-          infrastructure with cloudformation. No running costs.
+setup       First thing to run and only run once. Sets up the basic 
+            infrastructure with cloudformation. No running costs.
 
-cleanup   Destroys cloudformation. **Does not clean up everything, WIP**
+cleanup     Destroy cloudformation. **Does not clean up everything, WIP**
 
-boot      Boot an instance from an image. Hourly charges apply after this.
+boot        Boot an instance from an image. Hourly charges apply after this.
 
-destroy   Terminate an instance. No more charges except snapshots
+destroy     Terminate an instance. No more charges except snapshots
 
-start     Start a stopped instance.
+start       Start a stopped instance.
 
-stop      Stop a running instance preserving file system for later start 
-          without snapshotting. EBS volume costs still apply.
+stop        Stop a running instance preserving file system for later start 
+            without snapshotting. EBS volume costs still apply.
 
-snapshot  Snapshot the file system of a running instance as an image that 
-          can be passed to boot. S3 costs apply.
+snapshot    Snapshot the file system of a running instance as an image that 
+            can be passed to boot. S3 costs apply.
 
-images    List all images.
+images      List all images.
 
-instances List all instances.
+instances   List all instances.
 
-connect   Connect to an instance
+connect     Connect to an instance
 
-resize    Resize an instance
+resize      Resize an instance
 
-info      Convenience command for listing both images and instances
+info        Convenience command for listing both images and instances
 
 ```
 
