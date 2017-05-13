@@ -43,7 +43,7 @@ aws --profile devbox ec2 create-tags --resources $INSTANCE_ID --tags Key=Applica
 
 echo "Booting instance $INSTANCE_ID from image $IMAGE_ID..."
 
-aws --profile $STACK_NAME ec2 wait instance-running --instance-ids $INSTANCE_ID
+aws --profile devbox ec2 wait instance-running --instance-ids $INSTANCE_ID
 
 IP_ADDRESS=$(aws --profile devbox ec2 describe-instances --instance-ids $INSTANCE_ID | jq -r .Reservations[].Instances[].PublicIpAddress)
 
