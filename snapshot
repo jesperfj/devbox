@@ -1,5 +1,6 @@
 #!/bin/bash
 
+STACK_NAME=devbox
 INSTANCE_NAME=$1
 IMAGE_NAME=$2
 
@@ -8,10 +9,8 @@ if [[ -z $IMAGE_NAME || -z $INSTANCE_NAME ]]; then
   exit 1
 fi
 
-STACK_NAME=devbox
-
 # Running instances with tag Application=devbox
-INSTANCE_ID=$(aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=devbox" "Name=tag:ResourceName,Values=$INSTANCE_NAME" "Name=instance-state-code,Values=16" | jq -r '.Reservations[].Instances[].InstanceId')
+INSTANCE_ID=$(aws --profile devbox ec2 describe-instances --filters "Name=tag:Application,Values=$STACK_NAME" "Name=tag:ResourceName,Values=$INSTANCE_NAME" "Name=instance-state-code,Values=16" | jq -r '.Reservations[].Instances[].InstanceId')
 
 if [ -z $INSTANCE_ID ]; then
   echo "Failed: No running instances named '$INSTANCE_NAME'."

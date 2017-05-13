@@ -17,11 +17,16 @@ fi
 
 STACKINFO=$(aws --profile devbox cloudformation describe-stacks | jq ".Stacks[] | select(.StackName==\"$STACK_NAME\") | .Outputs")
 
-IMAGE_ID=$(aws --profile devbox ec2 describe-images --filters "Name=tag:Application,Values=devbox" "Name=name,Values=$IMAGE_NAME" | jq -r .Images[].ImageId)
+IMAGE_ID=$(aws --profile devbox ec2 describe-images --filters "Name=tag:Application,Values=$STACK_NAME" "Name=name,Values=$IMAGE_NAME" | jq -r .Images[].ImageId)
 
 if [ -z $IMAGE_ID ]; then
-  echo "Failed: Image $IMAGE_NAME not found."
-  exit 1
+  # Assume it's a straight image ID and check if it exists:
+  if [ $(aws --profile devbox ec2 describe-images --image-ids $IMAGE_NAME | jq ".[] | length") -eq 1 ]; then
+    IMAGE_ID=$IMAGE_NAME
+  else
+    echo "Failed: Image $IMAGE_NAME not found."
+    exit 1
+  fi
 fi
 
 if (( $(grep -c . <<<"$IMAGE_ID") > 1 )); then 
