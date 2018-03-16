@@ -1,0 +1,47 @@
+#!/bin/bash
+
+if [[ -z $1 || -z $2 ]]; then
+  echo "Usage: peer <stack-name> <space-name>"
+  exit 1
+fi
+
+STACK_NAME=$1
+SPACE_NAME=$2
+
+if [[ -z $AWS_PROFILE ]]; then
+  AWS_PROFILE=default
+fi
+
+set -euo pipefail
+
+stackinfo=$(aws --profile $AWS_PROFILE cloudformation describe-stacks | jq ".Stacks[] | select(.StackName==\"$STACK_NAME\") | .Outputs")
+ec2instanceid=$(jq -r '.[] | select(.OutputKey=="EC2Instance") | .OutputValue' <<< "$stackinfo")
+postgres_host=$(jq -r '.[] | select(.OutputKey=="DBHost") | .OutputValue' <<< "$stackinfo")
+ec2instanceip=$(aws --profile devbox ec2 describe-instances --filters "Name=instance-id,Values=$ec2instanceid" | jq -r '.Reservations[].Instances[].PublicIpAddress')
+
+body=$(cat <<EOF -
+{
+	"app": {
+		"space": "$SPACE_NAME"
+	},
+	"source_blob": {
+		"url": "https://codeload.github.com/jesperfj/intense-go/tar.gz/master"
+	},
+	"overrides": {
+		"env": {
+			"DB_URL": "postgres://scott:tiger123@$postgres_host:5432/mydb",
+			"EC2_IP": "$ec2instanceip"
+		}
+	}
+}
+EOF
+)
+
+echo $body
+
+result=$(curl -nsX POST https://api.heroku.com/app-setups -d "$body" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/vnd.heroku+json; version=3")
+
+jq -r '.app.name' <<< $result
+

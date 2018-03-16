@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: vpcinfo <stack-name>"
+	exit 1
+fi
+
+STACK_NAME=$1
+
+if [[ -z $AWS_PROFILE ]]; then
+	AWS_PROFILE=default
+fi
+
+set -euo pipefail
+
+aws --profile $AWS_PROFILE cloudformation describe-stacks | jq ".Stacks[] | select(.StackName==\"$STACK_NAME\") | .Outputs"

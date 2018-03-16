@@ -38,7 +38,7 @@ fi
 SECURITY_GROUP=$(echo $STACKINFO | jq -r '.[] | select(.OutputKey=="SecurityGroup") | .OutputValue')
 SUBNET=$(echo $STACKINFO | jq -r '.[] | select(.OutputKey=="Subnet") | .OutputValue')
 
-INSTANCE_ID=$(aws --profile devbox ec2 run-instances --image-id $IMAGE_ID --count 1 --instance-type $INSTANCE_TYPE --key-name $STACK_NAME --security-group-ids $SECURITY_GROUP --subnet-id $SUBNET --associate-public-ip-address | jq -r '.Instances[0].InstanceId')
+INSTANCE_ID=$(aws --profile devbox ec2 run-instances --image-id $IMAGE_ID --count 1 --instance-type $INSTANCE_TYPE --key-name default-ssh-key --security-group-ids $SECURITY_GROUP --subnet-id $SUBNET --associate-public-ip-address | jq -r '.Instances[0].InstanceId')
 aws --profile devbox ec2 create-tags --resources $INSTANCE_ID --tags Key=Application,Value=$STACK_NAME Key=ResourceName,Value=$INSTANCE_NAME
 
 echo "Booting instance $INSTANCE_ID from image $IMAGE_ID..."

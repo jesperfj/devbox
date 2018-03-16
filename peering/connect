@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: connect <stack-name>"
+	exit 1
+fi
+
+STACK_NAME=$1
+
+if [[ -z $AWS_PROFILE ]]; then
+	AWS_PROFILE=default
+fi
+
+set -euo pipefail
+
+instanceid=$(aws cloudformation describe-stacks | jq -r ".Stacks[] | select(.StackName==\"$STACK_NAME\") | .Outputs[] | select(.OutputKey==\"EC2Instance\") | .OutputValue")
+
+ip=$(aws --profile devbox ec2 describe-instances --filters "Name=instance-id,Values=$instanceid" | jq -r '.Reservations[].Instances[].PublicIpAddress')
+
+echo "Connecting to $ip as user ubuntu..."
+
+ssh ubuntu@$ip

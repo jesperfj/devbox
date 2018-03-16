@@ -1,0 +1,62 @@
+#!/bin/bash
+
+if [[ -z $1 || -z $2 ]]; then
+	echo "Usage: peer <stack-name> <space-name>"
+	exit 1
+fi
+
+STACK_NAME=$1
+SPACE_NAME=$2
+
+if [[ -z $AWS_PROFILE ]]; then
+	AWS_PROFILE=default
+fi
+
+set -euo pipefail
+
+peeringinfo=$(heroku spaces:peering:info $SPACE_NAME --json)
+stackinfo=$(aws --profile $AWS_PROFILE cloudformation describe-stacks | jq ".Stacks[] | select(.StackName==\"$STACK_NAME\") | .Outputs")
+
+space_vpc=$(jq -r '.vpc_id' <<<"$peeringinfo")
+space_owner_id=$(jq -r '.aws_account_id' <<<"$peeringinfo")
+my_vpc=$(jq -r '.[] | select(.OutputKey=="VPC") | .OutputValue' <<< "$stackinfo")
+
+aws_peering=$(aws --profile $AWS_PROFILE ec2 create-vpc-peering-connection --vpc-id $my_vpc --peer-vpc-id $space_vpc --peer-owner-id $space_owner_id)
+echo "Requested peering connection between $SPACE_NAME and VPC $my_vpc"
+
+pcx=$(jq -r .VpcPeeringConnection.VpcPeeringConnectionId <<< "$aws_peering")
+
+echo "Waiting for connection to show up in Heroku"
+while true ; do
+	sleep 5
+	if [[ $(heroku spaces:peerings $SPACE_NAME --json | jq -r ".[] | select(.pcx_id==\"$pcx\") | length") -gt 0 ]]; then
+		break
+	fi
+	echo -n '.'
+done
+echo
+
+heroku spaces:peerings:accept $pcx --space $SPACE_NAME
+
+while true ; do
+	status=$(heroku spaces:peerings --space $SPACE_NAME --json | jq -r ".[] | select(.pcx_id==\"$pcx\") | .status")
+	if [[ "$status" = "active" ]]; then
+		echo
+		break
+	fi
+	echo -n '.'
+	sleep 5
+done
+echo "Peering connection active"
+echo "Adding routes"
+
+rtb=$(jq -r '.[] | select(.OutputKey=="RouteTable") | .OutputValue' <<< "$stackinfo")
+
+space_cidrs=$(jq -r '.dyno_cidr_blocks | .[]' <<< "$peeringinfo")
+
+for cidr in $space_cidrs; do
+	result=$(aws --profile $AWS_PROFILE ec2 create-route --route-table-id $rtb --destination-cidr-block $cidr --vpc-peering-connection-id $pcx | jq -r .Return)
+	if [[ $result != "true" ]]; then
+		echo "Something went wrong setting up route for $cidr"
+	fi
+done

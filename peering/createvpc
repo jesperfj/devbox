@@ -1,0 +1,62 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+  echo "Usage: createvpc <stack-name> [cidrtop2] # e.g createvpc mystack 172.20"
+  exit 1
+fi
+
+STACK_NAME=$1
+
+if [[ -z $2 ]]; then
+  BASE_CIDR="172.31"
+else
+  BASE_CIDR=$2
+fi
+
+if [[ -z $AWS_PROFILE ]]; then
+  AWS_PROFILE=default
+fi
+
+set -euo pipefail
+
+AZS=$(aws --profile $AWS_PROFILE ec2 describe-availability-zones)
+
+AZ1=$(echo $AZS | jq -r '.AvailabilityZones[0].ZoneName')
+AZ2=$(echo $AZS | jq -r '.AvailabilityZones[1].ZoneName')
+echo "Picked AZs: $AZ1 and $AZ2"
+
+KEYPAIRS=$(aws --profile $AWS_PROFILE ec2 describe-key-pairs)
+
+# Upload laptop ssh key if it's not already there
+
+if ! jq -e '.KeyPairs[] | select(.KeyName=="default-ssh-key")' <<< $KEYPAIRS > /dev/null; then
+  RESULT=$(aws --profile $AWS_PROFILE ec2 import-key-pair --key-name default-ssh-key --public-key-material file://$HOME/.ssh/id_rsa.pub)
+fi
+
+STACK_ID=$(aws --profile $AWS_PROFILE cloudformation create-stack --stack-name $STACK_NAME \
+               --template-body "$(cat vpc.yaml)" \
+               --parameters \
+                 ParameterKey=StackName,ParameterValue=$STACK_NAME \
+                 ParameterKey=AZ1,ParameterValue=$AZ1 \
+                 ParameterKey=AZ2,ParameterValue=$AZ2 \
+                 ParameterKey=Cidr,ParameterValue=${BASE_CIDR}.0.0/16 \
+                 ParameterKey=Cidr0,ParameterValue=${BASE_CIDR}.0.0/24 \
+                 ParameterKey=Cidr1,ParameterValue=${BASE_CIDR}.1.0/24 \
+           | jq -r .StackId)
+
+while true ; do
+  sleep 5
+  STATUS=$(aws --profile $AWS_PROFILE cloudformation describe-stacks | jq -r ".Stacks[] | select(.StackId==\"$STACK_ID\") | .StackStatus")
+  if [ "$STATUS" != "CREATE_IN_PROGRESS" ] ; then
+    break
+  fi
+  echo -n '.'
+done
+echo
+
+if [ "$STATUS" == "CREATE_COMPLETE" ]; then
+  echo "Setup complete"
+else
+  echo "Setup failed. Check output below and inspect the $STACK_NAME cloudformation stack manually in AWS console for clues"
+  aws --profile devbox cloudformation describe-stacks | jq -r ".Stacks[] | select(.StackId==\"$STACK_ID\")"  
+fi

@@ -2,7 +2,7 @@
 
 STACK_NAME=devbox
 
-KEYPAIR_RESULT=$(aws --profile devbox ec2 import-key-pair --key-name $STACK_NAME --public-key-material file://$HOME/.ssh/id_rsa.pub)
+KEYPAIR_RESULT=$(aws --profile devbox ec2 import-key-pair --key-name default-ssh-key --public-key-material file://$HOME/.ssh/id_rsa.pub)
 
 STACK_ID=$(aws --profile devbox cloudformation create-stack --stack-name $STACK_NAME --template-body "$(cat vpc.json)" | jq -r .StackId)
 
